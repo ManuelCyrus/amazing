@@ -136,7 +136,7 @@ def parse_config(path: str) -> Config:
             height=height,
             entry=entry_coord,
             exit=exit_coord,
-            output_file=data_dict["OUTPUT_FILE"],
+            output_file=output_path,
             perfect=perfect,
 
             seed=seed,
