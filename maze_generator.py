@@ -1,14 +1,8 @@
 import random
 
-# Bits das paredes
 N, E, S, W = 1, 2, 4, 8
 
-OPPOSITE = {
-    N: S,
-    S: N,
-    E: W,
-    W: E
-}
+OPPOSITE = {N: S, S: N, E: W, W: E}
 
 DIRECTIONS = [
     (0, -1, N),
@@ -17,34 +11,37 @@ DIRECTIONS = [
     (-1, 0, W)
 ]
 
+class MazeGenerator:
+    def __init__(self, width: int, height: int, seed=None):
+        self.width = width
+        self.height = height
+        self.seed = seed
 
-def generate_maze(width: int, height: int, seed=None):
-    if seed is not None:
-        random.seed(seed)
+    def generate_maze(self):
+        if self.seed is not None:
+            random.seed(self.seed)
 
-    # cada célula começa com todas as paredes (1111 = 15)
-    maze = [[15 for _ in range(width)] for _ in range(height)]
-    visited = [[False] * width for _ in range(height)]
+        maze = [[N | E | S | W for _ in range(self.width)] for _ in range(self.height)]
+        visited = [[False] * self.width for _ in range(self.height)]
 
-    def dfs(x, y):
-        visited[y][x] = True
+        def dfs(x, y):
+            visited[y][x] = True
+            dirs = DIRECTIONS[:]
+            random.shuffle(dirs)
 
-        dirs = DIRECTIONS[:]
-        random.shuffle(dirs)
+            for dx, dy, wall in dirs:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    if not visited[ny][nx]:
+                        maze[y][x] &= ~wall
+                        maze[ny][nx] &= ~OPPOSITE[wall]
+                        dfs(nx, ny)
 
-        for dx, dy, wall in dirs:
-            nx, ny = x + dx, y + dy
+        dfs(0, 0)
 
-            if 0 <= nx < width and 0 <= ny < height:
-                if not visited[ny][nx]:
+        maze[0][0] &= ~(N | W)
+        maze[self.height - 1][self.width - 1] &= ~(S | E)
 
-                    # remover parede entre células
-                    maze[y][x] &= ~wall
-                    maze[ny][nx] &= ~OPPOSITE[wall]
+        return maze
 
-                    dfs(nx, ny)
-
-    # começa no canto superior esquerdo
-    dfs(0, 0)
-
-    return maze
+__all__ = ["MazeGenerator", "N", "E", "S", "W", "DIRECTIONS"]
