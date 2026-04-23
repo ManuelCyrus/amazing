@@ -103,15 +103,15 @@ class Maze_Renderer:
             }
             return mapping.get(key, " ")
 
-        rows = len(maze.cells)
-        cols = len(maze.cells[0]) if rows > 0 else 0
+        rows = len(maze)
+        cols = len(maze[0]) if rows > 0 else 0
         grid_h = rows * 2 + 1
         grid_w = cols * 2 + 1
         grid: list[list[str]] = [
             [" " for _ in range(grid_w)] for _ in range(grid_h)
         ]
 
-        for y, row in enumerate(maze.cells):
+        for y, row in enumerate(maze):
             for x, cell_value in enumerate(row):
                 # 1) Determine cell type and center character
                 if (x, y) == cfg.entry:
