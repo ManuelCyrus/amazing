@@ -5,7 +5,8 @@ import sys
 
 
 def solve_maze(maze, start, end):
-    """Resolve o labirinto e retorna uma lista de direções do entry até exit."""
+    """Resolve o labirinto e retorna uma
+    lista de direções do entry até exit."""
     width, height = len(maze[0]), len(maze)
     visited = [[False] * width for _ in range(height)]
     path = []

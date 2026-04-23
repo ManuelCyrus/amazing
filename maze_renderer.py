@@ -3,6 +3,7 @@ import sys
 import time
 from maze_generator import MazeGenerator, Maze
 from config import Config
+from ouput_write import write_output_file
 
 
 class Maze_Renderer:
@@ -205,6 +206,79 @@ class Maze_Renderer:
                     line += " "
             print(line)
 
+    def _animate_solver(
+        self,
+        gen: MazeGenerator,
+        cfg: Config,
+        maze: Maze,
+        yield_every: int = 1,
+    ) -> list[str]:
+
+        """Animate solver (BFS) step-by-step.
+
+        Maze generation is instantaneous; only the solver search is animated.
+        """
+        final_path: list[str] = []
+
+        steps_it = gen.solve_bfs_steps(
+                maze,
+                cfg.entry,
+                cfg.exit,
+                yield_every=yield_every,
+            )
+
+        # Clear once, then only move cursor to home to reduce flicker.
+        print("\033[2J\033[H\033[?25l", end="", flush=True)
+
+        for cur, visited, frontier, step_path in steps_it:
+            print("\033[H", end="", flush=True)
+            self._build_maze(
+                maze,
+                cfg,
+                step_path,
+                visited=visited,
+                frontier=frontier,
+                current=cur,
+            )
+
+            final_path = step_path
+            time.sleep(self.animation_speed)
+
+        print("\033[?25h", end="", flush=True)
+        return final_path
+
+    def _animate_generation(
+        self,
+        gen: MazeGenerator,
+        cfg: Config,
+        entry: tuple[int, int],
+        exit: tuple[int, int],
+    ) -> tuple[Maze, list[str]]:
+        """Animate maze generation step-by-step.
+
+        Returns the final maze and its solution path.
+        """
+        # Clear once, then only move cursor to home to reduce flicker.
+        print("\033[2J\033[H\033[?25l", end="", flush=True)
+
+        final_maze: Maze | None = None
+        final_path: list[str] = []
+
+        for maze, path in gen.iter_generation_steps(entry, exit):
+            print("\033[H", end="", flush=True)
+            # Hide path during generation to avoid flashing the solution.
+            self._build_maze(maze, cfg, [])
+            final_maze = maze
+            final_path = path
+            time.sleep(self.animation_speed)
+
+        print("\033[?25h", end="", flush=True)
+
+        if final_maze is None:
+            raise RuntimeError("Generation failed")
+
+        return final_maze, final_path
+
     def create_maze(
         self,
         maze: Maze,
@@ -224,39 +298,38 @@ class Maze_Renderer:
             self._build_maze(current_maze, cfg, current_path)
 
             fps = 1/self.animation_speed if self.animation_speed > 0 else 0
+            perfect_type = "Perfect Maze" if cfg.perfect else "Imperfect Maze"
+
             print(f"\n{self.wall_color}╔════════════════ Manual "
                   f"════════════════╗{self.wall_colors[0]}")
             print("║ (0) Exit")
             print("║ (1) Regenerate new maze")
             print("║ (2) Show solution")
-            print("║ (4) Animate")
-            print("║ (5) Regenerate new maze")
-            print("║ (6) Regenerate new maze")
-            print("║ (7) Regenerate new maze")
-            print("║ (8) Regenerate new maze")
+            print("║ (3) Change maze colors")
+            print(f"║ (4) Animate maze generation: {self.animate_generation}")
+            print(f"║ (5) Animate maze solver:     {self.animate_solver}")
+            print(f"║ === Maze type: {perfect_type}   ===")
+            print(f"║ === Animation speed: {fps:.1f} FPS ===")
+            print("║ (+) Increase animation speed")
+            print("║ (-) Decrease animation speed")
+            print(f"{self.wall_color}╚══════════════════════"
+                  f"══════════════════╝{self.wall_colors[0]}")
 
-            print(f"║ (3) Trocar Cor        (7) AUTO-SOLVE (Animar)      ║")
-            print(f"║ (+) Vel++  (-) Vel--  (8) Exportar Hex (TXT)       ║")
-            print(f"║ Velocidade: {fps:.1f} FPS                              ║")
-            print(f"║ (0) Sair                                           ║")
-            print(f"{self.wall_color}╚════════════════════════════════════════════════════╝{self.wall_colors[0]}")
-            
-            try:
-                cmd = input("\n> ")
-            except:
-                break
+            cmd = input("\n> ")
 
             # exits
             if cmd == '0':
                 break
-            
+
             # display solution
             elif cmd == '2':
                 self.show_path = not self.show_path
 
             # change color of walls
             elif cmd == '3':
-                self.color_index = (self.color_index + 1) % len(self.wall_colors)
+                self.color_index = (
+                    (self.color_index + 1) % len(self.wall_colors)
+                )
                 self.wall_color = self.wall_colors[self.color_index]
 
             # increase speed of animation
@@ -271,10 +344,10 @@ class Maze_Renderer:
             elif cmd == '4':
                 self.animate_generation = not self.animate_generation
 
-             # Toggle animation solver on/off
+            # Toggle animation solver on/off
             elif cmd == '5':
                 self.animate_solver = not self.animate_solver
-            
+
             # Regenerate a new maze and solve it
             elif cmd == '1':
                 print("\033[2J\033[H", end="", flush=True)
@@ -285,8 +358,8 @@ class Maze_Renderer:
                         gen, cfg, cfg.entry, cfg.exit,
                     )
                 else:
-                    c_maze = gen.generate_maze(cfg.entry, cfg.exit)
-                
+                    current_maze = gen.generate_maze(cfg.entry, cfg.exit)
+
                 # Checks if need animate solver or not
                 if self.animate_solver and self.show_path:
                     current_path = self._animate_solver(
@@ -297,5 +370,14 @@ class Maze_Renderer:
                         current_path = gen.solve(
                             current_maze, cfg.entry, cfg.exit,
                         )
-
-                c_path = self._get_final_path(c_maze, cfg.entry, cfg.exit)
+                # Update output file
+                try:
+                    write_output_file(
+                        output_path=cfg.output_file,
+                        maze=current_maze,
+                        entry=cfg.entry,
+                        exit=cfg.exit,
+                        path=current_path,
+                    )
+                except ValueError as e:
+                    print(f"\nError writing file: {e}", file=sys.stderr)
