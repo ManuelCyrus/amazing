@@ -3,7 +3,6 @@ from config import parse_config
 from maze_generator import MazeGenerator, N, E, S, W, DIRECTIONS
 import sys
 
-
 def solve_maze(maze, start, end):
     """Resolve o labirinto e retorna uma lista de direções do entry até exit."""
     width, height = len(maze[0]), len(maze)
@@ -45,29 +44,12 @@ def main():
         sys.exit(1)
 
     generator = MazeGenerator(cfg.width, cfg.height, seed=cfg.seed)
-    #    gen = MazeGenerator(
-    #       width=cfg.width,
-    #       height=cfg.height,
-    #       seed=cfg.seed,
-    #       perfect=cfg.perfect
-    # )
-
     maze = generator.generate_maze()
-    # This is supposed to be the generate maze structure.
-    # You need to send to generate_maze the entry=cfg.entry and exit=cfg.exit
-    # maze = generator.generate_maze(entry=cfg.entry, exit=cfg.exit)
-
     path = solve_maze(maze, cfg.entry, cfg.exit)
-    # This is supposed to be the solver of the maze,
-    # not sure where the solver is gonna be in.
-    # You need to send to maze, the entry=cfg.entry and exit=cfg.exit
-    # path = gen.solve(maze, cfg.entry, cfg.exit)
 
     try:
         renderer = Maze_Renderer()
-    # This is the renderer it's not suppost to solve anything,
-    # just print out stuff and animation.
-    # I use maze, path, generator and cfg
+        # Renderiza o labirinto com o caminho
         renderer.create_maze(maze, path, generator, cfg)
     except (KeyboardInterrupt, ValueError) as e:
         if isinstance(e, KeyboardInterrupt):
@@ -78,7 +60,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("interrupt")
+    main()
