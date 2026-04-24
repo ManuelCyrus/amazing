@@ -1,6 +1,7 @@
 from collections import deque
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Set, Iterator
 from .maze_generator import Maze, DIRS
+
 
 class MazeSolver:
     def __init__(self, maze: Maze):
@@ -25,7 +26,7 @@ class MazeSolver:
             x, y = queue.popleft()
             if (x, y) == end:
                 break
-            for d, (dx, dy, *_ ) in DIRS.items():
+            for d, (dx, dy, *_) in DIRS.items():
                 if not self.can_go(x, y, d):
                     continue
                 nx, ny = x + dx, y + dy
@@ -43,3 +44,68 @@ class MazeSolver:
             cur, d = parent[cur]
             path.append(d)
         return path[::-1]
+
+#########################################
+# Added animation solver
+    def solve_bfs_steps(
+        self,
+        start: Tuple[int, int],
+        end: Tuple[int, int],
+        yield_every: int = 1
+    ) -> Iterator[
+            Tuple[Tuple[int, int],
+                  Set[Tuple[int, int]],
+                  Set[Tuple[int, int]],
+                  List[str]]
+                ]:
+        """
+        BFS solver generator that yields steps for animation.
+        Yields: (current_cell, visited_set, frontier_set, path_so_far)
+        """
+        queue = deque([start])
+        visited: Set[Tuple[int, int]] = {start}
+        frontier: Set[Tuple[int, int]] = {start}
+        parent: Dict[Tuple[int, int], Tuple[Tuple[int, int], str]] = {}
+        steps_counter = 0
+
+        while queue:
+            x, y = queue.popleft()
+            frontier.discard((x, y))
+
+            if (x, y) == end:
+                break
+
+            for d, (dx, dy, *_) in DIRS.items():
+                if not self.can_go(x, y, d):
+                    continue
+                nx, ny = x + dx, y + dy
+                nxt = (nx, ny)
+                if nxt in visited:
+                    continue
+                visited.add(nxt)
+                frontier.add(nxt)
+                parent[nxt] = ((x, y), d)
+                queue.append(nxt)
+
+            steps_counter += 1
+            if steps_counter % yield_every == 0:
+                # build current path
+                path: List[str] = []
+                cur = end
+                if cur in parent:
+                    while cur != start:
+                        cur, d = parent[cur]
+                        path.append(d)
+                    path = path[::-1]
+                yield ((x, y), visited.copy(), frontier.copy(), path)
+
+        # Final yield ensures solver finishes with full path
+        path: List[str] = []
+        cur = end
+        if cur in parent:
+            while cur != start:
+                cur, d = parent[cur]
+                path.append(d)
+            path = path[::-1]
+        yield (end, visited.copy(), set(), path)
+############################

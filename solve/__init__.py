@@ -1,2 +1,2 @@
-from .maze_generator import MazeGenerator, Maze
-from .solver import MazeSolver
+from .maze_generator import MazeGenerator, Maze  # noqa
+from .solver import MazeSolver  # noqa

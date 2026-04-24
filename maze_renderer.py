@@ -1,9 +1,10 @@
 import signal
 import sys
 import time
-from maze_generator import MazeGenerator, Maze
+import random
+from solve import MazeGenerator, Maze, MazeSolver
 from config import Config
-from ouput_write import write_output_file
+from solve.maze_generator import export_maze
 
 
 class Maze_Renderer:
@@ -22,6 +23,11 @@ class Maze_Renderer:
         self.color_index: int = 0
         self.wall_color: str = self.wall_colors[0]
         self.animation_speed: float = 0.03
+
+        self.stamp_colors: list[str] = ["\033[93m", "\033[95m", "\033[91m"]
+        # yellow, magenta, pink
+        self.stamp_c_i: int = 0
+        self.stamp_color: str = self.stamp_colors[0]
 
     def _handle_suspend(
         self, signum: int, frame: object | None
@@ -43,7 +49,7 @@ class Maze_Renderer:
         ENTRY_COLOR = "\033[32m"      # Green
         EXIT_COLOR = "\033[31m"       # Red
         PATH_COLOR = "\033[96m"       # Bright cyan for solution path
-        STAMP_COLOR = "\033[93m"      # Bright yellow for the 42 stamp
+        # STAMP_COLOR = "\033[93m"      # Bright yellow for the 42 stamp
         RESET = "\033[0m"             # reset color to default
         BLOCK = "█"
 
@@ -113,15 +119,15 @@ class Maze_Renderer:
             }
             return mapping.get(key, " ")
 
-        rows = len(maze.cells)
-        cols = len(maze.cells[0]) if rows > 0 else 0
+        rows = len(maze.grid)
+        cols = len(maze.grid[0]) if rows > 0 else 0
         grid_h = rows * 2 + 1
         grid_w = cols * 2 + 1
         grid: list[list[str]] = [
             [" " for _ in range(grid_w)] for _ in range(grid_h)
         ]
 
-        for y, row in enumerate(maze.cells):
+        for y, row in enumerate(maze.grid):
             for x, cell_value in enumerate(row):
                 # 1) Determine cell type and center character
                 if (x, y) == cfg.entry:
@@ -129,7 +135,7 @@ class Maze_Renderer:
                 elif (x, y) == cfg.exit:
                     center_char = f"{EXIT_COLOR}{BLOCK}{RESET}"
                 elif has_stamp and (x, y) in stamp_coords:
-                    center_char = f"{STAMP_COLOR}{BLOCK}{RESET}"
+                    center_char = f"{self.stamp_color}{BLOCK}{RESET}"
                 elif current and (x, y) == current:
                     center_char = "\033[95m█\033[0m"  # cursor
                 elif frontier and (x, y) in frontier:
@@ -208,7 +214,7 @@ class Maze_Renderer:
 
     def _animate_solver(
         self,
-        gen: MazeGenerator,
+        solution: MazeSolver,
         cfg: Config,
         maze: Maze,
         yield_every: int = 1,
@@ -220,8 +226,8 @@ class Maze_Renderer:
         """
         final_path: list[str] = []
 
-        steps_it = gen.solve_bfs_steps(
-                maze,
+        # TO CHECK URGENT
+        steps_it = solution.solve_bfs_steps(
                 cfg.entry,
                 cfg.exit,
                 yield_every=yield_every,
@@ -264,6 +270,7 @@ class Maze_Renderer:
         final_maze: Maze | None = None
         final_path: list[str] = []
 
+        # TO CHECK URGENT
         for maze, path in gen.iter_generation_steps(entry, exit):
             print("\033[H", end="", flush=True)
             # Hide path during generation to avoid flashing the solution.
@@ -285,6 +292,7 @@ class Maze_Renderer:
         path: list[str],
         gen: MazeGenerator,
         cfg: Config,
+        solution: MazeSolver,
     ) -> None:
 
         """Menu principal do Renderizador."""
@@ -302,16 +310,18 @@ class Maze_Renderer:
 
             print(f"\n{self.wall_color}╔════════════════ Manual "
                   f"════════════════╗{self.wall_colors[0]}")
-            print("║ (0) Exit")
-            print("║ (1) Regenerate new maze")
-            print("║ (2) Show solution")
-            print("║ (3) Change maze colors")
-            print(f"║ (4) Animate maze generation: {self.animate_generation}")
-            print(f"║ (5) Animate maze solver:     {self.animate_solver}")
-            print(f"║ === Maze type: {perfect_type}   ===")
-            print(f"║ === Animation speed: {fps:.1f} FPS ===")
-            print("║ (+) Increase animation speed")
-            print("║ (-) Decrease animation speed")
+            print("   (0) Exit")
+            print("   (1) Regenerate new maze")
+            print("   (2) Show solution")
+            print("   (3) Change maze colors")
+            print(f"   (4) Animate maze generation: {self.animate_generation}")
+            print(f"   (5) Animate maze solver:     {self.animate_solver}")
+            print("   (6) Change logo color (current index: "
+                  f"{self.stamp_c_i})")
+            print(f"  ==== Maze type: {perfect_type}   ====")
+            print(f"  ==== Animation speed: {fps:.1f} FPS ====")
+            print("   (+) Increase animation speed")
+            print("   (-) Decrease animation speed")
             print(f"{self.wall_color}╚══════════════════════"
                   f"══════════════════╝{self.wall_colors[0]}")
 
@@ -319,6 +329,10 @@ class Maze_Renderer:
 
             # exits
             if cmd == '0':
+                ########
+                # QUALITY OF LIFE, clear console when press 0 then break
+                ########
+                print("\033[2J\033[H", end="", flush=True)
                 break
 
             # display solution
@@ -348,36 +362,56 @@ class Maze_Renderer:
             elif cmd == '5':
                 self.animate_solver = not self.animate_solver
 
+            ######
+            #   Added 42 logo color change
+            ######
+            # Change color of 42 Logo
+            elif cmd == '6':
+                self.stamp_c_i = (self.stamp_c_i + 1) % len(self.stamp_colors)
+                self.stamp_color = self.stamp_colors[self.stamp_c_i]
+
             # Regenerate a new maze and solve it
             elif cmd == '1':
                 print("\033[2J\033[H", end="", flush=True)
                 print("Regenerating maze...", flush=True)
+                ########
+                # Generate new seed for new maze
+                ########
+                gen.rng = random.Random()
                 # Checks if need animate generation or not
                 if self.animate_generation:
                     current_maze, current_path = self._animate_generation(
                         gen, cfg, cfg.entry, cfg.exit,
                     )
                 else:
-                    current_maze = gen.generate_maze(cfg.entry, cfg.exit)
+                    # MAZE GENERATOR
+                    current_maze = gen.generate(cfg.entry, cfg.exit)
 
+                #######
+                # Making sure the solver uses the current new maze
+                #######
+                solver = MazeSolver(current_maze)
                 # Checks if need animate solver or not
                 if self.animate_solver and self.show_path:
                     current_path = self._animate_solver(
-                        gen, cfg, current_maze, yield_every=1,
+                        solver,
+                        cfg,
+                        current_maze,
+                        yield_every=1,
                     )
                 else:
                     if not self.animate_generation:
-                        current_path = gen.solve(
-                            current_maze, cfg.entry, cfg.exit,
+                        current_path = solver.solve(
+                            cfg.entry, cfg.exit,
                         )
                 # Update output file
                 try:
-                    write_output_file(
-                        output_path=cfg.output_file,
-                        maze=current_maze,
-                        entry=cfg.entry,
-                        exit=cfg.exit,
-                        path=current_path,
+                    export_maze(
+                        current_maze,
+                        cfg.entry,
+                        cfg.exit,
+                        current_path,
+                        cfg.output_file
                     )
                 except ValueError as e:
                     print(f"\nError writing file: {e}", file=sys.stderr)
