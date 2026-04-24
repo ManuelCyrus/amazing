@@ -1,0 +1,96 @@
+MAZE GENERATOR & SOLVER - USAGE GUIDE
+
+1. PROJECT STRUCTURE
+
+maze_generator.py
+solver.py
+(config parser handled externally)
+
+
+2. INPUT
+
+The program receives the following parameters from the external parser:
+
+- width (int): maze width
+- height (int): maze height
+- seed (int or None): random seed for reproducibility
+- perfect (bool): if False, the maze will contain loops
+- entry (tuple): starting position (x, y)
+- exit (tuple): ending position (x, y)
+
+
+3. HOW TO GENERATE THE MAZE
+
+from maze_generator import MazeGenerator
+
+gen = MazeGenerator(width, height, seed, perfect)
+maze = gen.generate(entry)
+
+
+4. HOW TO SOLVE THE MAZE
+
+from solver import MazeSolver
+
+solver = MazeSolver(maze)
+path = solver.solve(entry, exit)
+
+- path is a list of directions:
+  "N", "S", "E", "W"
+
+
+5. EXPORT FORMAT (IMPORTANT)
+
+To generate the final output file:
+
+- Maze grid is printed in HEX format
+- Each row is one line
+- Then a blank line
+- Then entry coordinates: x,y
+- Then exit coordinates: x,y
+- Then the solution path (string of moves)
+
+Example:
+
+43957913B9157955513B
+BAA956A86AC53A9796C2
+...
+
+0,0
+19,9
+ESSSESWWSSS...
+
+
+Code example
+
+
+from solve import MazeGenerator, MazeSolver
+from solve.maze_generator import export_maze 
+
+    generator = MazeGenerator(width, height, seed, perfect) 
+
+    maze = generator.generate(entry)         
+
+    path = solve_maze(maze, entry, exit)
+
+    export_maze(maze, entry, exit, path, "output.txt")  that is my solver generate.
+
+
+6. NOTES
+
+- Entry and exit must be inside the maze bounds
+- Exit must be reachable
+- If no path exists, solver returns an empty list
+- Seed ensures reproducible mazes
+- Perfect=True generates a perfect maze (no loops)
+
+
+7. EXAMPLE USAGE
+
+gen = MazeGenerator(20, 15, seed=42, perfect=False)
+maze = gen.generate((0, 0))
+
+solver = MazeSolver(maze)
+path = solver.solve((0, 0), (19, 14))
+
+
+END OF DOCUMENT, AND ONE PUNCHHHHHHHH

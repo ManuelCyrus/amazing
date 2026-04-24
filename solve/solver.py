@@ -1,113 +1,45 @@
 from collections import deque
+from typing import Tuple, List, Dict
+from .maze_generator import Maze, DIRS
 
-N, E, S, W = 1, 2, 4, 8
+class MazeSolver:
+    def __init__(self, maze: Maze):
+        self.maze = maze
 
+    def can_go(self, x: int, y: int, d: str) -> bool:
+        dx, dy, bit, _ = DIRS[d]
+        nx, ny = x + dx, y + dy
+        if not (0 <= nx < self.maze.w and 0 <= ny < self.maze.h):
+            return False
+        return (self.maze.cell(x, y) & bit) == 0
 
-def bfs(maze, start, end):
-    width, height = len(maze[0]), len(maze)
-
-    queue = deque([start])
-    visited = set([start])
-    parent = {}
-
-    moves = [(0,-1,N),(1,0,E),(0,1,S),(-1,0,W)]
-
-    while queue:
-        x,y = queue.popleft()
-
-        yield {
-            "current": (x,y),
-            "visited": set(visited),
-            "frontier": set(queue),
-            "path": None
-        }
-
-        if (x,y) == end:
-            break
-
-        cell = maze[y][x]
-
-        for dx,dy,wall in moves:
-            if not (cell & wall):
-                nx,ny = x+dx, y+dy
-
-                if (0 <= nx < width and 0 <= ny < height):
-                    if (nx,ny) not in visited:
-                        visited.add((nx,ny))
-                        parent[(nx,ny)] = (x,y)
-                        queue.append((nx,ny))
-
-    path = []
-    cur = end
-
-    while cur in parent:
-        path.append(cur)
-        cur = parent[cur]
-
-    path.append(start)
-    path.reverse()
-
-    yield {
-        "current": None,
-        "visited": visited,
-        "frontier": set(),
-        "path": path
-    }
-
-
-def dfs(maze, start, end):
-    width, height = len(maze[0]), len(maze)
-
-    stack = [start]
-    visited = set([start])
-    parent = {}
-
-    moves = [(0,-1,N),(1,0,E),(0,1,S),(-1,0,W)]
-
-    while stack:
-        x,y = stack.pop()
-
-        yield {
-            "current": (x,y),
-            "visited": set(visited),
-            "frontier": set(stack),
-            "path": None
-        }
-
-        if (x,y) == end:
-            break
-
-        cell = maze[y][x]
-
-        for dx,dy,wall in moves:
-            if not (cell & wall):
-                nx,ny = x+dx, y+dy
-
-                if (0 <= nx < width and 0 <= ny < height):
-                    if (nx,ny) not in visited:
-                        visited.add((nx,ny))
-                        parent[(nx,ny)] = (x,y)
-                        stack.append((nx,ny))
-
-    path = []
-    cur = end
-
-    while cur in parent:
-        path.append(cur)
-        cur = parent[cur]
-
-    path.append(start)
-    path.reverse()
-
-    yield {
-        "current": None,
-        "visited": visited,
-        "frontier": set(),
-        "path": path
-    }
-
-
-def solve_maze_anim(maze, start, end, algorithm="bfs"):
-    if algorithm == "dfs":
-        return dfs(maze, start, end)
-    return bfs(maze, start, end)
+    def solve(self, start: Tuple[int, int], end: Tuple[int, int]) -> List[str]:
+        if not (0 <= start[0] < self.maze.w and 0 <= start[1] < self.maze.h):
+            raise ValueError("Invalid start")
+        if not (0 <= end[0] < self.maze.w and 0 <= end[1] < self.maze.h):
+            raise ValueError("Invalid end")
+        queue = deque([start])
+        visited = {start}
+        parent: Dict[Tuple[int, int], Tuple[Tuple[int, int], str]] = {}
+        while queue:
+            x, y = queue.popleft()
+            if (x, y) == end:
+                break
+            for d, (dx, dy, *_ ) in DIRS.items():
+                if not self.can_go(x, y, d):
+                    continue
+                nx, ny = x + dx, y + dy
+                nxt = (nx, ny)
+                if nxt in visited:
+                    continue
+                visited.add(nxt)
+                parent[nxt] = ((x, y), d)
+                queue.append(nxt)
+        if end not in parent:
+            return []
+        path = []
+        cur = end
+        while cur != start:
+            cur, d = parent[cur]
+            path.append(d)
+        return path[::-1]

@@ -1,1 +1,2 @@
-from .solver import solve_maze_anim
+from .maze_generator import MazeGenerator, Maze
+from .solver import MazeSolver
