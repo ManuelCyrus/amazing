@@ -109,7 +109,7 @@ class MazeGenerator:
 
     def _apply_42(self, maze: Maze, coords: Set[Tuple[int, int]]):
         for x, y in coords:
-            maze.update(x, y, 15)
+            maze.stamp42 = coords
         #########
         # Added a stamp42 coordinates so renderer.py can fill it
         #########
