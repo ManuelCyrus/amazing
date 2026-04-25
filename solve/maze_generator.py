@@ -41,6 +41,7 @@ class MazeGenerator:
         self.h = height
         self.rng = random.Random(seed)
         self.perfect = perfect
+        self.current_seed: int | None = seed
 
     def inside(self, x: int, y: int) -> bool:
         return 0 <= x < self.w and 0 <= y < self.h
@@ -117,6 +118,7 @@ class MazeGenerator:
 
     def _add_loops(self, maze: Maze):
         attempts = (self.w * self.h) // 8
+        blocked = maze.stamp42
 
         for _ in range(attempts):
             x = self.rng.randrange(self.w)
@@ -132,8 +134,10 @@ class MazeGenerator:
             cell = maze.cell(x, y)
             ncell = maze.cell(nx, ny)
 
-            if cell & bit or ncell & opp:
+            if (x, y) in blocked or (nx, ny) in blocked:
                 continue
+            #if cell & bit or ncell & opp:
+            #    continue
 
             maze.update(x, y, cell & ~bit)
             maze.update(nx, ny, ncell & ~opp)

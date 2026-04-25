@@ -307,6 +307,7 @@ class Maze_Renderer:
 
             fps = 1/self.animation_speed if self.animation_speed > 0 else 0
             perfect_type = "Perfect Maze" if cfg.perfect else "Imperfect Maze"
+            seed_display = getattr(gen, "current_seed", None)
 
             print(f"\n{self.wall_color}╔════════════════ Manual "
                   f"════════════════╗{self.wall_colors[0]}")
@@ -316,12 +317,12 @@ class Maze_Renderer:
             print("   (3) Change maze colors")
             print(f"   (4) Animate maze generation: {self.animate_generation}")
             print(f"   (5) Animate maze solver:     {self.animate_solver}")
-            print("   (6) Change logo color (current index: "
-                  f"{self.stamp_c_i})")
-            print(f"  ==== Maze type: {perfect_type}   ====")
+            print(f"   (6) Change logo color: {self.stamp_c_i}")
             print(f"  ==== Animation speed: {fps:.1f} FPS ====")
             print("   (+) Increase animation speed")
             print("   (-) Decrease animation speed")
+            print(f"  ==== Seed: {seed_display}")
+            print(f"  ==== Maze type: {perfect_type}")
             print(f"{self.wall_color}╚══════════════════════"
                   f"══════════════════╝{self.wall_colors[0]}")
 
@@ -377,7 +378,9 @@ class Maze_Renderer:
                 ########
                 # Generate new seed for new maze
                 ########
-                gen.rng = random.Random()
+                new_seed = random.randrange(2**32)
+                gen.rng = random.Random(new_seed)  # reset RNG with new seed
+                gen.current_seed = new_seed        # store it in the generator
                 # Checks if need animate generation or not
                 if self.animate_generation:
                     current_maze, current_path = self._animate_generation(
