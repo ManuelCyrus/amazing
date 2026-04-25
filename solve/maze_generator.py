@@ -113,15 +113,30 @@ class MazeGenerator:
         #########
         # Added a stamp42 coordinates so renderer.py can fill it
         #########
-        maze.stamp42 = coords
+        
 
     def _add_loops(self, maze: Maze):
         attempts = (self.w * self.h) // 8
+
         for _ in range(attempts):
             x = self.rng.randrange(self.w)
             y = self.rng.randrange(self.h)
-            d = self.rng.choice(list(DIRS.keys()))
-            self.break_wall(maze, x, y, d)
+
+            d = self.rng.choice(list(DIRS))
+            dx, dy, bit, opp = DIRS[d]
+            nx, ny = x + dx, y + dy
+
+            if not self.inside(nx, ny):
+                continue
+
+            cell = maze.cell(x, y)
+            ncell = maze.cell(nx, ny)
+
+            if cell & bit or ncell & opp:
+                continue
+
+            maze.update(x, y, cell & ~bit)
+            maze.update(nx, ny, ncell & ~opp)
 
     def generate(self, start: Tuple[int, int], end: Tuple[int, int]) -> Maze:
         #########
