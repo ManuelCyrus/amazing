@@ -8,8 +8,28 @@ from solve.maze_generator import export_maze
 
 
 class Maze_Renderer:
+    """
+    Renders a maze in the terminal with ASCII characters, ANSI colors,
+    and optional animations for maze generation and solution path.
+
+    Attributes:
+        show_path (bool): Whether to display the solution path.
+        animate_solver (bool): Whether to animate the maze solver.
+        animate_generation (bool): Whether to animate maze generation.
+        wall_colors (list[str]): ANSI color codes for maze walls.
+        color_index (int): Current index in wall_colors.
+        wall_color (str): Current wall color.
+        animation_speed (float): Delay in seconds between animation frames.
+        stamp_colors (list[str]): ANSI color codes for the 42 stamp.
+        stamp_c_i (int): Current index in stamp_colors.
+        stamp_color (str): Current color for the 42 stamp.
+    """
 
     def __init__(self) -> None:
+        """
+        Initialize the Maze_Renderer with default colors, animation speed,
+        and signal handlers to handle clean suspension and termination.
+        """
 
         signal.signal(signal.SIGTSTP, self._handle_suspend)
         signal.signal(signal.SIGQUIT, self._handle_suspend)
@@ -32,6 +52,16 @@ class Maze_Renderer:
     def _handle_suspend(
         self, signum: int, frame: object | None
     ) -> None:
+        """
+        Handle signals for clean suspension or termination.
+
+        Args:
+            signum (int): Signal number.
+            frame (Optional[object]): Current stack frame.
+
+        Raises:
+            KeyboardInterrupt: Always raised to stop program execution cleanly.
+        """
         raise KeyboardInterrupt
 
     def _build_maze(
@@ -43,17 +73,29 @@ class Maze_Renderer:
         frontier: set[tuple[int, int]] | None = None,
         current: tuple[int, int] | None = None,
     ) -> None:
+        """
+        Render the maze in the terminal using ASCII characters and ANSI colors.
 
-        """Renderiza o labirinto no terminal com cores e caracteres ASCII."""
+        Args:
+            - maze (Maze): Maze object (grid and stamp42 coordinates).
+            - cfg (Config): Configuration (entry and exit positions).
+            - path (List[str]): List of directions (solution path).
+            - visited (Optional[Set[Tuple[int,int]]]): Cells visited by solver.
+            - frontier (Optional[Set[Tuple[int,int]]]): Cells in the solver
+            frontier.
+            - current (Optional[Tuple[int,int]]): Current cell for animation
+            cursor.
+        """
+
         WALL_COLOR = self.wall_color  # Set by user interaction
         ENTRY_COLOR = "\033[32m"      # Green
         EXIT_COLOR = "\033[31m"       # Red
         PATH_COLOR = "\033[96m"       # Bright cyan for solution path
-        # STAMP_COLOR = "\033[93m"      # Bright yellow for the 42 stamp
         RESET = "\033[0m"             # reset color to default
         BLOCK = "█"
 
-        # Convert path directions to coordinates and connectors
+        # Convert solution path directions
+        # to actual cell coordinates for coloring
         path_coords = set()
         path_connectors: set[tuple[int, int, str]] = set()
         stamp_coords: set[tuple[int, int]] = getattr(
@@ -62,17 +104,22 @@ class Maze_Renderer:
         has_stamp = bool(stamp_coords)
 
         if self.show_path and path:
+            # Include entry in path
             x, y = cfg.entry
-            path_coords.add((x, y))  # Include entry in path
+            path_coords.add((x, y))
             for direction in path:
+                # Transform maze coordinates to grid coordinates
+                # for ASCII rendering
                 gx, gy = 2 * x + 1, 2 * y + 1
                 if direction == 'N':
+                    # Vertical connector
                     path_connectors.add((gy - 1, gx, "V"))
                     y -= 1
                 elif direction == 'S':
                     path_connectors.add((gy + 1, gx, "V"))
                     y += 1
                 elif direction == 'E':
+                    # Horizontal connector
                     path_connectors.add((gy, gx + 1, "H"))
                     x += 1
                 elif direction == 'W':
@@ -82,23 +129,18 @@ class Maze_Renderer:
                     # Skip invalid directions
                     continue
                 path_coords.add((x, y))
-            # Ensure exit is included
+            # Ensure exit is included in path
             path_coords.add(cfg.exit)
 
+        # Define set of characters that are considered walls
         wall_chars = {
-            "─",
-            "│",
-            "┌",
-            "┐",
-            "└",
-            "┘",
-            "├",
-            "┤",
-            "┬",
-            "┴",
-            "┼",
+            "─", "│", "┌", "┐",
+            "└", "┘", "├", "┤",
+            "┬", "┴", "┼",
         }
 
+        # Helper to select correct junction character based
+        # on surrounding walls
         def _junction_char(
             up: bool, down: bool, left: bool, right: bool
         ) -> str:
@@ -119,14 +161,18 @@ class Maze_Renderer:
             }
             return mapping.get(key, " ")
 
+        # Grid dimensions in ASCII terms (cells and walls interleaved)
         rows = len(maze.grid)
         cols = len(maze.grid[0]) if rows > 0 else 0
         grid_h = rows * 2 + 1
         grid_w = cols * 2 + 1
+        # Initialize empty ASCII grid
         grid: list[list[str]] = [
             [" " for _ in range(grid_w)] for _ in range(grid_h)
         ]
 
+        # Populate grid with:
+        # walls, cells, path, stamps, visited/frontier highlights
         for y, row in enumerate(maze.grid):
             for x, cell_value in enumerate(row):
                 # 1) Determine cell type and center character
@@ -137,25 +183,30 @@ class Maze_Renderer:
                 elif has_stamp and (x, y) in stamp_coords:
                     center_char = f"{self.stamp_color}{BLOCK}{RESET}"
                 elif current and (x, y) == current:
-                    center_char = "\033[95m█\033[0m"  # cursor
+                    # Current solver position
+                    center_char = "\033[95m█\033[0m"
                 elif frontier and (x, y) in frontier:
-                    center_char = "\033[94m█\033[0m"  # frontier
+                    # Solver frontier
+                    center_char = "\033[94m█\033[0m"
                 elif visited and (x, y) in visited:
-                    center_char = "\033[90m█\033[0m"  # visited
+                    # Visited cells
+                    center_char = "\033[90m█\033[0m"
                 elif (x, y) in path_coords:
+                    # Solution path
                     center_char = f"{PATH_COLOR}{BLOCK}{RESET}"
                 else:
+                    # Empty cell
                     center_char = " "
 
                 grid[2 * y + 1][2 * x + 1] = center_char
 
-                # 2) Build the walls using bitmasking
-                # (cell_value is 0-15: N=1, E=2, S=4, W=8)
+                # Determine which walls exist using bitmask
                 n_wall_exists = bool(cell_value & 1)
                 e_wall_exists = bool(cell_value & 2)
                 s_wall_exists = bool(cell_value & 4)
                 w_wall_exists = bool(cell_value & 8)
 
+                # Draw walls in ASCII grid
                 if n_wall_exists:
                     grid[2 * y][2 * x + 1] = "─"
                 if s_wall_exists:
@@ -165,17 +216,18 @@ class Maze_Renderer:
                 if e_wall_exists:
                     grid[2 * y + 1][2 * x + 2] = "│"
 
-        # 3) Add path connectors so color is continuous between cells
+        # Connect path cells visually so path appears continuous
         for gy, gx, orient in path_connectors:
             if 0 <= gy < grid_h and 0 <= gx < grid_w:
                 if grid[gy][gx] == " ":
                     grid[gy][gx] = orient
 
+        # Track central path cell positions for junction adjustments
         path_center_grid = {
             (2 * y + 1, 2 * x + 1) for (x, y) in path_coords
         }
 
-        # 4) Resolve junctions for continuous lines
+        # Resolve junctions for continuous line appearance
         for gy in range(0, grid_h, 2):
             for gx in range(0, grid_w, 2):
                 up = gy > 0 and grid[gy - 1][gx] == "│"
@@ -184,7 +236,7 @@ class Maze_Renderer:
                 right = gx < grid_w - 1 and grid[gy][gx + 1] == "─"
                 grid[gy][gx] = _junction_char(up, down, left, right)
 
-        # 5) Print the grid with colored walls and path
+        # Print the grid to terminal with colors
         right_edge_chars = {"─", "┌", "└", "├", "┬", "┴", "┼"}
         for gy, grid_row in enumerate(grid):
             line = ""
@@ -197,6 +249,8 @@ class Maze_Renderer:
                     line += f"{PATH_COLOR}{BLOCK}{RESET}"
                 else:
                     line += ch
+
+                # Add spacing or connecting block to the right
                 if gx == grid_w - 1:
                     continue
                 next_ch = grid_row[gx + 1]
@@ -219,25 +273,53 @@ class Maze_Renderer:
         maze: Maze,
         yield_every: int = 1,
     ) -> list[str]:
-
-        """Animate solver (BFS) step-by-step.
-
-        Maze generation is instantaneous; only the solver search is animated.
         """
+        Animate the BFS maze solver step-by-step in the terminal.
+
+        Args:
+            - solution (MazeSolver): MazeSolver object for the current maze.
+            - cfg (Config): Configuration containing entry and exit positions.
+            - maze (Maze): Maze object to solve.
+            - yield_every (int, optional): Yield animation every N solver step.
+            Default is 1.
+
+        Returns:
+            List[str]: The final solution path from start to end.
+        """
+
+        # Store the final solution path as the animation progresses
         final_path: list[str] = []
 
-        # TO CHECK URGENT
+        # Obtain a generator that yields the solver's state step-by-step
+        # Each yield provides:
+        #   - cur: current cell being processed
+        #   - visited: set of cells already visited
+        #   - frontier: set of cells in the BFS frontier
+        #   - step_path: current reconstructed path from start to current
         steps_it = solution.solve_bfs_steps(
                 cfg.entry,
                 cfg.exit,
                 yield_every=yield_every,
             )
 
-        # Clear once, then only move cursor to home to reduce flicker.
+        # Clear the terminal and hide the cursor to reduce flicker
+        # \033[2J  -> clear screen
+        # \033[H   -> move cursor to home
+        # \033[?25l -> hide cursor
         print("\033[2J\033[H\033[?25l", end="", flush=True)
 
+        # Iterate over the BFS solver steps
         for cur, visited, frontier, step_path in steps_it:
+            # Move cursor to home to redraw maze in the same terminal position
             print("\033[H", end="", flush=True)
+
+            # Call internal maze renderer to draw the maze at current state
+            #   - 'maze' is the maze object
+            #   - 'cfg' provides entry/exit positions
+            #   - 'step_path' shows the path found so far
+            #   - 'visited' highlights explored cells
+            #   - 'frontier' highlights BFS frontier
+            #   - 'current' shows the solver's current position
             self._build_maze(
                 maze,
                 cfg,
@@ -247,10 +329,15 @@ class Maze_Renderer:
                 current=cur,
             )
 
+            # Update the final_path with the current reconstructed path
             final_path = step_path
+            # Delay to control animation speed
             time.sleep(self.animation_speed)
 
+        # After animation ends, restore cursor visibility
         print("\033[?25h", end="", flush=True)
+
+        # Return the final solution path
         return final_path
 
     def _animate_generation(
@@ -260,30 +347,51 @@ class Maze_Renderer:
         entry: tuple[int, int],
         exit: tuple[int, int],
     ) -> tuple[Maze, list[str]]:
-        """Animate maze generation step-by-step.
 
-        Returns the final maze and its solution path.
         """
-        # Clear once, then only move cursor to home to reduce flicker.
+        Animate the maze generation step-by-step in the terminal.
+
+        Args:
+            gen (MazeGenerator): Maze generator object.
+            cfg (Config): Configuration containing entry and exit positions.
+            entry (Tuple[int,int]): Starting cell coordinates.
+            exit (Tuple[int,int]): Ending cell coordinates.
+
+        Returns:
+            Tuple[Maze, List[str]]: Generated maze and its solution path.
+        """
+
+        # Clear once, then move cursor to home to reduce flicker.
         print("\033[2J\033[H\033[?25l", end="", flush=True)
 
+        # Initialize placeholders for the final maze and the path
         final_maze: Maze | None = None
         final_path: list[str] = []
 
-        # TO CHECK URGENT
+        # Iterate over each step of the maze generation
+        # 'iter_generation_steps' yields tuples of:
+        #   - maze: current maze state
+        #   - path: the partial path reconstructed so far (can be empty)
         for maze, path in gen.iter_generation_steps(entry, exit):
             print("\033[H", end="", flush=True)
-            # Hide path during generation to avoid flashing the solution.
+            # Draw the current maze state without the path to prevent flicker
             self._build_maze(maze, cfg, [])
+
+            # Update the final maze and path as the generator progresses
             final_maze = maze
             final_path = path
+
+            # Delay to control animation speed
             time.sleep(self.animation_speed)
 
+        # Restore cursor visibility after animation ends
         print("\033[?25h", end="", flush=True)
 
+        # Ensure generation succeeded
         if final_maze is None:
             raise RuntimeError("Generation failed")
 
+        # Return the last maze state and its corresponding solution path
         return final_maze, final_path
 
     def create_maze(
@@ -295,7 +403,24 @@ class Maze_Renderer:
         solution: MazeSolver,
     ) -> None:
 
-        """Menu principal do Renderizador."""
+        """
+        Main interactive menu to display, animate, and control maze behavior.
+
+        Allows user to:
+        - Show/hide solution path.
+        - Change wall colors.
+        - Animate maze generation and solver.
+        - Change 42 stamp color.
+        - Regenerate maze with a new seed.
+
+        Args:
+            maze (Maze): Initial maze object to display.
+            path (List[str]): Initial solution path.
+            gen (MazeGenerator): Maze generator object.
+            cfg (Config): Configuration object with maze settings.
+            solution (MazeSolver): Maze solver object.
+        """
+
         current_maze = maze
         current_path = path
 
@@ -303,10 +428,14 @@ class Maze_Renderer:
 
             print("\033[2J\033[H", end="", flush=True)
 
+            # Draw the current maze state and path
             self._build_maze(current_maze, cfg, current_path)
 
+            # Calculate frames per second from animation speed
             fps = 1/self.animation_speed if self.animation_speed > 0 else 0
             perfect_type = "Perfect Maze" if cfg.perfect else "Imperfect Maze"
+
+            # Retrieve current seed for display
             seed_display = getattr(gen, "current_seed", None)
 
             print(f"\n{self.wall_color}╔════════════════ Manual "
@@ -330,9 +459,6 @@ class Maze_Renderer:
 
             # exits
             if cmd == '0':
-                ########
-                # QUALITY OF LIFE, clear console when press 0 then break
-                ########
                 print("\033[2J\033[H", end="", flush=True)
                 break
 
@@ -363,9 +489,6 @@ class Maze_Renderer:
             elif cmd == '5':
                 self.animate_solver = not self.animate_solver
 
-            ######
-            #   Added 42 logo color change
-            ######
             # Change color of 42 Logo
             elif cmd == '6':
                 self.stamp_c_i = (self.stamp_c_i + 1) % len(self.stamp_colors)
@@ -375,26 +498,23 @@ class Maze_Renderer:
             elif cmd == '1':
                 print("\033[2J\033[H", end="", flush=True)
                 print("Regenerating maze...", flush=True)
-                ########
-                # Generate new seed for new maze
-                ########
+
                 new_seed = random.randrange(2**32)
                 gen.rng = random.Random(new_seed)  # reset RNG with new seed
-                gen.current_seed = new_seed        # store it in the generator
-                # Checks if need animate generation or not
+                gen.current_seed = new_seed        # store seed
+
+                # Generate maze with optional animation
                 if self.animate_generation:
                     current_maze, current_path = self._animate_generation(
                         gen, cfg, cfg.entry, cfg.exit,
                     )
                 else:
-                    # MAZE GENERATOR
                     current_maze = gen.generate(cfg.entry, cfg.exit)
 
-                #######
-                # Making sure the solver uses the current new maze
-                #######
+                # Create a solver for the new maze
                 solver = MazeSolver(current_maze)
-                # Checks if need animate solver or not
+
+                # Solve the maze with optional animation
                 if self.animate_solver and self.show_path:
                     current_path = self._animate_solver(
                         solver,
@@ -407,7 +527,8 @@ class Maze_Renderer:
                         current_path = solver.solve(
                             cfg.entry, cfg.exit,
                         )
-                # Update output file
+
+                # Export maze to file
                 try:
                     export_maze(
                         current_maze,

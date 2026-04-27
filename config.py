@@ -5,7 +5,18 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class Config:
+    """
+    Configuration for maze generation and solving.
 
+    Attributes:
+        width (int): Width of the maze.
+        height (int): Height of the maze.
+        entry (tuple[int, int]): Entry coordinates (x, y).
+        exit (tuple[int, int]): Exit coordinates (x, y).
+        output_file (str): Path to export the maze solution.
+        perfect (bool): Whether the maze should be perfect (no loops).
+        seed (Optional[int]): Random seed for maze generation.
+    """
     width: int
     height: int
     entry: tuple[int, int]
@@ -16,6 +27,18 @@ class Config:
 
 
 def _verify_coord(value: str) -> tuple[int, int]:
+    """
+    Convert a string "x,y" into a tuple of integers.
+
+    Args:
+        value (str): Coordinate string in the format "x,y".
+
+    Returns:
+        Tuple[int, int]: Parsed coordinate.
+
+    Raises:
+        ValueError: If the input is not properly formatted or not integers.
+    """
     try:
         coord = value.split(",")
         if len(coord) != 2:
@@ -27,6 +50,18 @@ def _verify_coord(value: str) -> tuple[int, int]:
 
 
 def _verify_bool(value: str) -> bool:
+    """
+    Convert a string to boolean.
+
+    Args:
+        value (str): String value, expected "true" or "false".
+
+    Returns:
+        bool: Converted boolean value.
+
+    Raises:
+        ValueError: If the string is not "true" or "false".
+    """
     val = value.strip().lower()
     if val == "true":
         return True
@@ -36,7 +71,18 @@ def _verify_bool(value: str) -> bool:
 
 
 def _verify_optional_int(value: Optional[str]) -> Optional[int]:
+    """
+    Convert a string to an optional integer.
 
+    Args:
+        value (Optional[str]): String representing an integer or None.
+
+    Returns:
+        Optional[int]: Integer value or None.
+
+    Raises:
+        ValueError: If the string is not a valid integer.
+    """
     if value is None:
         return None
     text = value.strip()
@@ -50,6 +96,20 @@ def _verify_optional_int(value: Optional[str]) -> Optional[int]:
 
 def parse_config(path: str) -> Config:
 
+    """
+    Parse a configuration file and return a Config object.
+
+    Args:
+        path (str): Path to the configuration file.
+
+    Returns:
+        Config: Parsed configuration object.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If any configuration value is invalid or missing.
+    """
+
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
     data_dict: dict[str, str] = {}
 
@@ -57,6 +117,7 @@ def parse_config(path: str) -> Config:
     if not pathway.exists():
         raise FileNotFoundError(f"Config file not found: {path}")
 
+    # Parse key=value lines
     for line in pathway.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
@@ -71,11 +132,12 @@ def parse_config(path: str) -> Config:
         key, value = line.split("=", 1)
         data_dict[key.strip().upper()] = value.strip()
 
+    # Check for missing mandatory keys
     missing = [k for k in required if k not in data_dict]
     if missing:
         raise ValueError(f"Missing mandatory keys: {', '.join(missing)}")
 
-    # VALIDATE HEIGHT AND WIDTH
+    # Validate width and height
     try:
         width = int(data_dict["WIDTH"])
         height = int(data_dict["HEIGHT"])
@@ -87,7 +149,7 @@ def parse_config(path: str) -> Config:
     except ValueError as e:
         raise ValueError(f"Configuration error: {e}")
 
-    # VALIDATE ENTRY_COORD AND WIDTH_COORD
+    # Validate entry and exit coordinates
     try:
         entry_coord = _verify_coord(data_dict["ENTRY"])
         exit_coord = _verify_coord(data_dict["EXIT"])
@@ -102,7 +164,7 @@ def parse_config(path: str) -> Config:
     except ValueError as e:
         raise ValueError(f"Configuration error: {e}")
 
-    # VALIDATE OUTPUT AND PARENT DIRECTORY
+    # Validate output file path
     try:
         output_path = data_dict["OUTPUT_FILE"]
         if not output_path.strip():
@@ -115,19 +177,19 @@ def parse_config(path: str) -> Config:
     except ValueError as e:
         raise ValueError(f"Configuration error: {e}")
 
-    # VALIDATE PERFECT
+    # Validate perfect boolean
     try:
         perfect = _verify_bool(data_dict["PERFECT"])
     except ValueError as e:
         raise ValueError(f"Configuration error: {e}")
 
-    # VALIDATE_SEED
+    # Validate seed
     try:
         seed_raw = data_dict.get("SEED")
         if seed_raw is None:
             seed = 42
         else:
-            seed = _verify_optional_int(seed_raw)
+            seed = _verify_optional_int(seed_raw)  # type: ignore[assignment]
     except ValueError as e:
         raise ValueError(f"Configuration error: {e}")
 

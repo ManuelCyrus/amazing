@@ -5,51 +5,54 @@ from solve import MazeGenerator, MazeSolver
 from solve.maze_generator import export_maze
 
 
-def main():
+def main() -> None:
+    """
+    Main function to run the maze generation,
+    solving, exporting, and rendering.
+
+    Steps:
+    1. Parse the configuration file passed as a command-line argument.
+    2. Generate a maze using the MazeGenerator class.
+    3. Solve the generated maze using MazeSolver.
+    4. Export the maze and solution path to a file.
+    5. Render the maze and solution using Maze_Renderer.
+
+    Raises:
+        SystemExit: If the configuration file is missing, invalid,
+                    or the program is interrupted.
+    """
     if len(sys.argv) < 2:
         print("Uso: python3 main.py config.txt")
         sys.exit(1)
 
     try:
         cfg_file = sys.argv[1]
-        # Exemplo de leitura simples. Ajuste conforme seu config.py
         cfg = parse_config(cfg_file)
     except (FileNotFoundError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)
 
+    # Initialize maze generator
     generator = MazeGenerator(
         width=cfg.width,
         height=cfg.height,
         seed=cfg.seed,
         perfect=cfg.perfect
     )
-    #    gen = MazeGenerator(
-    #       width=cfg.width,
-    #       height=cfg.height,
-    #       seed=cfg.seed,
-    #       perfect=cfg.perfect
-    # )
 
+    # Generate the maze
     maze = generator.generate(start=cfg.entry, end=cfg.exit)
-    # This is supposed to be the generate maze structure.
-    # You need to send to generate_maze the entry=cfg.entry and exit=cfg.exit
-    # maze = generator.generate_maze(entry=cfg.entry, exit=cfg.exit)
 
+    # Solve the maze
     maze_solution = MazeSolver(maze)
     path = maze_solution.solve(cfg.entry, cfg.exit)
-    # This is supposed to be the solver of the maze,
-    # not sure where the solver is gonna be in.
-    # You need to send to maze, the entry=cfg.entry and exit=cfg.exit
-    # path = gen.solve(maze, cfg.entry, cfg.exit)
 
+    # Export the maze and solution
     export_maze(maze, cfg.entry, cfg.exit, path, cfg.output_file)
 
+    # Render the maze
     try:
         renderer = Maze_Renderer()
-    # This is the renderer it's not suppost to solve anything,
-    # just print out stuff and animation.
-    # I use maze, path, generator and cfg
         renderer.create_maze(maze, path, generator, cfg, maze_solution)
     except (KeyboardInterrupt, ValueError) as e:
         if isinstance(e, KeyboardInterrupt):
