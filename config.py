@@ -67,7 +67,7 @@ def _verify_bool(value: str) -> bool:
         return True
     if val == "false":
         return False
-    raise ValueError(f"Invalid boolean value: {value}")
+    raise ValueError(f"Invalid boolean value: {value}, expected True / False")
 
 
 def _verify_optional_int(value: Optional[str]) -> Optional[int]:

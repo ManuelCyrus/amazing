@@ -22,7 +22,7 @@ def main() -> None:
                     or the program is interrupted.
     """
     if len(sys.argv) < 2:
-        print("Uso: python3 main.py config.txt")
+        print("Use: python3 main.py config.txt")
         sys.exit(1)
 
     try:
@@ -41,7 +41,11 @@ def main() -> None:
     )
 
     # Generate the maze
-    maze = generator.generate(start=cfg.entry, end=cfg.exit)
+    try:
+        maze = generator.generate(start=cfg.entry, end=cfg.exit)
+    except ValueError as e:
+        print(f"Error generating maze: {e}")
+        exit(1)
 
     # Solve the maze
     maze_solution = MazeSolver(maze)

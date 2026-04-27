@@ -145,7 +145,6 @@ class MazeGenerator:
         for _ in range(attempts):
             x = self.rng.randrange(self.w)
             y = self.rng.randrange(self.h)
-
             d = self.rng.choice(list(DIRS))
             dx, dy, bit, opp = DIRS[d]
             nx, ny = x + dx, y + dy
@@ -187,18 +186,21 @@ class MazeGenerator:
         if not self.inside(*start):
             raise ValueError("Invalid start position")
         if not self.inside(*end):
-            raise ValueError("Invalid end position, it needs")
+            raise ValueError("Invalid end position")
+
         maze = Maze(self.w, self.h)
         blocked = set()
         try:
             blocked = self._build_42_coords()
         except ValueError:
             blocked = set()
+
         # Added error check to verify if end is in 42 stamp
         if start in blocked:
             raise ValueError("Start coord are inside 42 stamp")
         if end in blocked:
             raise ValueError("End coord are inside 42 stamp")
+
         visited: Set[Tuple[int, int]] = set()
         stack: List[Tuple[int, int]] = [start]
         visited.add(start)
@@ -221,9 +223,9 @@ class MazeGenerator:
             self.break_wall(maze, x, y, d)
             visited.add((nx, ny))
             stack.append((nx, ny))
+        self._apply_42(maze, blocked)
         if not self.perfect:
             self._add_loops(maze)
-        self._apply_42(maze, blocked)
         return maze
 
     def iter_generation_steps(
