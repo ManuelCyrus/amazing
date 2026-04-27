@@ -136,36 +136,66 @@ A bit set to `1` signifies that it is a **closed** wall (present); while `0` mea
 - **No 3×3 Open Areas**: Constraint preventing open rectangular spaces larger than 2×2
 - **Entry/Exit Validation**: Entry and exit points are outside all constraint zones
 
+## Maze Generation Algorithm
 
-### Maze Generation Algorithm
+The maze is generated using a **Depth-First Search (DFS) with backtracking and randomization**.
 
-Manuel, escreve aqui!!!!!! (Describe the algorythm and how it works)
+The algorithm starts from the initial cell and explores unvisited neighbors randomly. For each step, it “breaks walls” between the current cell and the chosen neighbor, then moves forward. If a cell has no available unvisited neighbors, the algorithm backtracks using a stack until it finds a new possible path.
 
-**Depth-First Search (DFS)**
+This process continues until all reachable cells are visited, forming a fully connected maze.
 
-### Why this Algorithm
+---
 
-Manuel, escreve aqui!!!!!! (Describe why this algorythm for the generation)
+###  Why this Algorithm
 
-### Maze Solver Algorithm
+DFS is used for maze generation because:
 
-Manuel, escreve aqui!!!!!! (Describe the algorythm and how it works)
+- It creates **perfect mazes** (only one path between any two points when no loops are added)
+- It is **simple and efficient to implement**
+- It naturally uses **backtracking**, which matches maze structure exploration
+- The randomness in neighbor selection produces **unique maze layouts every run**
+- It guarantees that all cells are reachable
 
-**Breadth-First Search (BFS)**
+Additionally, DFS produces long and winding corridors, which are ideal for maze-style puzzles.
 
-### Why this Algorithm
+---
 
-Manuel, escreve aqui!!!!!! (Describe why this algorythm for the solver, add anything you want)
+##  Maze Solver Algorithm
 
-- Explores level-by-level
-- Guarantees the shortest path
-- Animatable with the step-by-step frontier visualization
+The maze solver uses a **Breadth-First Search (BFS)** algorithm to find the shortest path between the start and end positions.
 
-## Reusable Code
+BFS explores the maze level by level, starting from the initial cell and expanding outward in all directions. It uses a queue to process cells in order of distance, ensuring that the first time the destination is reached, the path found is optimal (shortest possible).
 
-Manuel, escreve aqui!!!!!! (We need to take care of this man we forgot this, anything with a ??? needs to be replaced, you got this)
+A `parent` dictionary is used to reconstruct the path once the end is reached.
 
-The reusable part of the project is `?????`, which is packaged as `????-1.0.0.tar.gz` and located at the root of the repository. This module can be installed independently via pip:
+---
+
+###  Why this Algorithm
+
+BFS is used for solving because:
+
+- It guarantees the **shortest path in an unweighted grid**
+- It explores the maze in **increasing distance order**
+- It is ideal for **pathfinding problems in grids**
+- It allows **step-by-step visualization (animation support)**
+- It is deterministic in terms of shortest path result
+
+- Explores level-by-level  
+- Guarantees the shortest path  
+- Animatable with step-by-step frontier visualization  
+
+---
+
+##  Reusable Code
+
+The reusable component of the project is the **maze engine module**, which includes:
+
+- `Maze` (grid representation with wall bitmask system)
+- `MazeGenerator` (DFS-based maze creation)
+- `MazeSolver` (BFS-based pathfinding)
+- Direction system (`DIRS`) for movement and wall handling
+
+This module is packaged as:
 
 ```bash
 pip install ./???-1.0.0.tar.gz
