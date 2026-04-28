@@ -16,6 +16,7 @@ debug:
 
 clean:
 	rm -rf __pycache__ .mypy_cache .pytest_cache .venv *.pyc
+	rm -rf dist build *.egg-info
 
 lint:
 	$(VENV)/bin/flake8 .

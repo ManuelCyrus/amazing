@@ -68,6 +68,7 @@ class MazeGenerator:
     def inside(self, x: int, y: int) -> bool:
         """Check if (x, y) is inside maze bounds."""
         return 0 <= x < self.w and 0 <= y < self.h
+# open between 2 cell
 
     def break_wall(self, maze: Maze, x: int, y: int, d: str) -> None:
         """Remove wall in direction d from cell (x, y)."""

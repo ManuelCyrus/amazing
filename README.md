@@ -198,7 +198,7 @@ The reusable component of the project is the **maze engine module**, which inclu
 This module is packaged as:
 
 ```bash
-pip install ./???-1.0.0.tar.gz
+pip install dist/mazegen-1.0.0-py3-none-any.whl
 ```
 
 ## Visual representation

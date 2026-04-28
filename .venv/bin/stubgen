@@ -1,6 +1,0 @@
-#!/home/jcrespo-/LISBOA-42-COMMON_CORE/Milestone_2/amazing/.venv/bin/python3
-import sys
-from mypy.stubgen import main
-if __name__ == '__main__':
-    sys.argv[0] = sys.argv[0].removesuffix('.exe')
-    sys.exit(main())
